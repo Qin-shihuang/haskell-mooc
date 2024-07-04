@@ -150,7 +150,7 @@ chunks n (x:xs) = if lengthAtLeast n (x:xs)
 
 newtype IgnoreCase = CaseIgnored String
 
-ignorecase :: [Char] -> IgnoreCase
+ignorecase :: String -> IgnoreCase
 ignorecase s = CaseIgnored s
 
 instance Eq IgnoreCase where
