@@ -12,6 +12,7 @@ import Mooc.Todo
 -- Bus, Tram and Train.
 --
 -- The constructors don't need any fields.
+data Vehicle = Bike | Bus | Tram | Train
 
 
 ------------------------------------------------------------------------------
@@ -19,7 +20,7 @@ import Mooc.Todo
 --  - SingleTicket
 --  - MonthlyTicket "January"
 --  - MonthlyTicket "December"
-
+data BusTicket = SingleTicket | MonthlyTicket String
 
 ------------------------------------------------------------------------------
 -- Ex 3: Here's the definition for a datatype ShoppingEntry that
@@ -48,7 +49,8 @@ twoBananas = MkShoppingEntry "Banana" 1.1 2
 --   totalPrice twoBananas   ==> 2.2
 
 totalPrice :: ShoppingEntry -> Double
-totalPrice = todo
+totalPrice se = let MkShoppingEntry _ p c = se
+  in p * fromIntegral c
 
 -- buyOneMore should increment the count in an entry by one
 --
@@ -56,7 +58,8 @@ totalPrice = todo
 --   buyOneMore twoBananas    ==> MkShoppingEntry "Banana" 1.1 3
 
 buyOneMore :: ShoppingEntry -> ShoppingEntry
-buyOneMore = todo
+buyOneMore se = let MkShoppingEntry n p c = se
+  in MkShoppingEntry n p (c + 1)
 
 ------------------------------------------------------------------------------
 -- Ex 4: define a datatype Person, which should contain the age (an
@@ -65,28 +68,32 @@ buyOneMore = todo
 -- Also define a Person value fred, and the functions getAge, getName,
 -- setAge and setName (see below).
 
-data Person = PersonUndefined
+data Person = Person Int String
   deriving Show
 
 -- fred is a person whose name is Fred and age is 90
 fred :: Person
-fred = todo
+fred = Person 90 "Fred"
 
 -- getName returns the name of the person
 getName :: Person -> String
-getName p = todo
+getName p = let Person _ n = p
+  in n
 
 -- getAge returns the age of the person
 getAge :: Person -> Int
-getAge p = todo
+getAge p = let Person a _ = p
+  in a
 
 -- setName takes a person and returns a new person with the name changed
 setName :: String -> Person -> Person
-setName name p = todo
+setName name p = let Person a _ = p
+  in Person a name
 
 -- setAge does likewise for age
 setAge :: Int -> Person -> Person
-setAge age p = todo
+setAge age p = let Person _ n = p
+  in Person age n
 
 ------------------------------------------------------------------------------
 -- Ex 5: define a datatype Position which contains two Int values, x
@@ -96,27 +103,32 @@ setAge age p = todo
 --   getY (up (up origin))    ==> 2
 --   getX (up (right origin)) ==> 1
 
-data Position = PositionUndefined
+data Position = Position Int Int
+  deriving Show
 
 -- origin is a Position value with x and y set to 0
 origin :: Position
-origin = todo
+origin = Position 0 0
 
 -- getX returns the x of a Position
 getX :: Position -> Int
-getX = todo
+getX pos = let Position x _ = pos
+  in x
 
 -- getY returns the y of a position
 getY :: Position -> Int
-getY = todo
+getY pos = let Position _ y = pos
+  in y
 
 -- up increases the y value of a position by one
 up :: Position -> Position
-up = todo
+up pos = let Position x y = pos
+  in Position x (y + 1)
 
 -- right increases the x value of a position by one
 right :: Position -> Position
-right = todo
+right pos = let Position x y = pos
+  in Position (x + 1) y
 
 ------------------------------------------------------------------------------
 -- Ex 6: Here's a datatype that represents a student. A student can
@@ -131,7 +143,11 @@ data Student = Freshman | NthYear Int | Graduated
 -- graduated student stays graduated even if he studies.
 
 study :: Student -> Student
-study = todo
+study s = case s of
+  Freshman -> NthYear 1
+  NthYear 7 -> Graduated
+  NthYear n -> NthYear (n + 1)
+  Graduated -> Graduated
 
 ------------------------------------------------------------------------------
 -- Ex 7: define a datatype UpDown that represents a counter that can
@@ -150,25 +166,32 @@ study = todo
 -- get (tick (tick (toggle (tick zero))))
 --   ==> -1
 
-data UpDown = UpDownUndefined1 | UpDownUndefined2
+data UpDown = CounterUp Int | CounterDown Int
+  deriving Show
 
 -- zero is an increasing counter with value 0
 zero :: UpDown
-zero = todo
+zero = CounterUp 0
 
 -- get returns the counter value
 get :: UpDown -> Int
-get ud = todo
+get ud = case ud of
+  CounterUp n -> n
+  CounterDown n -> n
 
 -- tick increases an increasing counter by one or decreases a
 -- decreasing counter by one
 tick :: UpDown -> UpDown
-tick ud = todo
+tick ud = case ud of
+  CounterUp n -> CounterUp (n + 1)
+  CounterDown n -> CounterDown (n - 1)
 
 -- toggle changes an increasing counter into a decreasing counter and
 -- vice versa
 toggle :: UpDown -> UpDown
-toggle ud = todo
+toggle ud = case ud of
+  CounterUp n -> CounterDown n
+  CounterDown n -> CounterUp n
 
 ------------------------------------------------------------------------------
 -- Ex 8: you'll find a Color datatype below. It has the three basic
@@ -198,7 +221,15 @@ data Color = Red | Green | Blue | Mix Color Color | Invert Color
   deriving Show
 
 rgb :: Color -> [Double]
-rgb col = todo
+rgb col = case col of
+  Red -> [1,0,0]
+  Green -> [0,1,0]
+  Blue -> [0,0,1]
+  Mix c1 c2 -> let {[r1,g1,b1] = rgb c1;
+                    [r2,g2,b2] = rgb c2}
+                in [(r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2]
+  Invert c -> let [r,g,b] = rgb c
+              in [1 - r, 1 - g, 1 - b]
 
 ------------------------------------------------------------------------------
 -- Ex 9: define a parameterized datatype OneOrTwo that contains one or
@@ -208,6 +239,8 @@ rgb col = todo
 --   One True         ::  OneOrTwo Bool
 --   Two "cat" "dog"  ::  OneOrTwo String
 
+data OneOrTwo a = One a | Two a a
+  deriving Show
 
 ------------------------------------------------------------------------------
 -- Ex 10: define a recursive datatype KeyVals for storing a set of
@@ -228,14 +261,18 @@ rgb col = todo
 -- Also define the functions toList and fromList that convert between
 -- KeyVals and lists of pairs.
 
-data KeyVals k v = KeyValsUndefined
+data KeyVals k v = Empty | Pair k v (KeyVals k v)
   deriving Show
 
 toList :: KeyVals k v -> [(k,v)]
-toList = todo
+toList kv = case kv of
+  Empty -> []
+  Pair k v rest -> (k,v) : toList rest
 
 fromList :: [(k,v)] -> KeyVals k v
-fromList = todo
+fromList kvs = case kvs of 
+  [] -> Empty
+  (k,v):rest -> Pair k v (fromList rest)
 
 ------------------------------------------------------------------------------
 -- Ex 11: The data type Nat is the so called Peano
@@ -252,10 +289,16 @@ data Nat = Zero | PlusOne Nat
   deriving (Show,Eq)
 
 fromNat :: Nat -> Int
-fromNat n = todo
+fromNat n = case n of
+  Zero -> 0
+  PlusOne n' -> 1 + fromNat n'
 
 toNat :: Int -> Maybe Nat
-toNat z = todo
+toNat z = if z < 0 then Nothing
+          else Just (toNat' z)
+  where toNat' z = case z of
+          0 -> Zero
+          _ -> PlusOne (toNat' (z - 1))
 
 ------------------------------------------------------------------------------
 -- Ex 12: While pleasingly simple in its definition, the Nat datatype is not
@@ -315,10 +358,21 @@ inc (O b) = I b
 inc (I b) = O (inc b)
 
 prettyPrint :: Bin -> String
-prettyPrint = todo
+prettyPrint bin = case bin of
+  End -> ""
+  O b -> prettyPrint b ++ "0"
+  I b -> prettyPrint b ++ "1"
 
 fromBin :: Bin -> Int
-fromBin = todo
+fromBin bin = fromBinHelper bin 0
+  where fromBinHelper bin pow = case bin of
+          End -> 0
+          O b -> fromBinHelper b (pow + 1)
+          I b -> 2^pow + fromBinHelper b (pow + 1)
 
 toBin :: Int -> Bin
-toBin = todo
+toBin n = 
+  if n == 0 then O End else toBinHelper n
+    where toBinHelper n = case n `mod` 2 of
+            0 -> if n == 0 then End else O (toBinHelper (n `div` 2))
+            1 -> I (toBinHelper (n `div` 2))

@@ -47,10 +47,10 @@ type Col   = Int
 type Coord = (Row, Col)
 
 nextRow :: Coord -> Coord
-nextRow (i,j) = todo
+nextRow (i,j) = (i + 1, 1)
 
 nextCol :: Coord -> Coord
-nextCol (i,j) = todo
+nextCol (i,j) = (i, j + 1)
 
 --------------------------------------------------------------------------------
 -- Ex 2: Implement the function prettyPrint that, given the size of
@@ -103,7 +103,9 @@ nextCol (i,j) = todo
 type Size = Int
 
 prettyPrint :: Size -> [Coord] -> String
-prettyPrint = todo
+prettyPrint s qs =  newline s [if elem (i,j) qs then 'Q' else '.'| i <- [1..s], j <- [1..s]]
+  where newline s [] = ""
+        newline s xs = take s xs ++ "\n" ++ newline s (drop s xs)
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -127,16 +129,16 @@ prettyPrint = todo
 --   sameAntidiag (500,5) (5,500) ==> True
 
 sameRow :: Coord -> Coord -> Bool
-sameRow (i,j) (k,l) = todo
+sameRow (i,j) (k,l) = i == k
 
 sameCol :: Coord -> Coord -> Bool
-sameCol (i,j) (k,l) = todo
+sameCol (i,j) (k,l) = j == l
 
 sameDiag :: Coord -> Coord -> Bool
-sameDiag (i,j) (k,l) = todo
+sameDiag (i,j) (k,l) = i - j == k - l
 
 sameAntidiag :: Coord -> Coord -> Bool
-sameAntidiag (i,j) (k,l) = todo
+sameAntidiag (i,j) (k,l) = i + j == k + l
 
 --------------------------------------------------------------------------------
 -- Ex 4: In chess, a queen may capture another piece in the same row, column,
@@ -191,7 +193,8 @@ type Candidate = Coord
 type Stack     = [Coord]
 
 danger :: Candidate -> Stack -> Bool
-danger = todo
+danger c ss = let inAtkRange a b = sameRow a b || sameCol a b || sameDiag a b || sameAntidiag a b
+         in any (inAtkRange c) ss
 
 --------------------------------------------------------------------------------
 -- Ex 5: In this exercise, the task is to write a modified version of
@@ -226,7 +229,9 @@ danger = todo
 -- solution to this version. Any working solution is okay in this exercise.)
 
 prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 = todo
+prettyPrint2 s qs = newline s [if elem (i,j) qs then 'Q' else if danger (i,j) qs then '#' else '.' | i <- [1..s], j <- [1..s]]
+  where newline s [] = ""
+        newline s xs = take s xs ++ "\n" ++ newline s (drop s xs)
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
@@ -271,7 +276,17 @@ prettyPrint2 = todo
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n s = todo
+-- fixFirst n s = if danger (head s) (tail s)
+--     then if snd (head s) > n
+--             then Nothing 
+--             else fixFirst n ((nextCol $ head s): tail s)
+--     else if snd (head s) > n
+--             then Nothing
+--             else Just s
+fixFirst n s
+    | snd (head s) > n = Nothing
+    | danger (head s) (tail s) = fixFirst n ((nextCol $ head s): tail s)
+    | otherwise = Just s
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -293,10 +308,11 @@ fixFirst n s = todo
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue s = todo
+continue [] = [(1,1)]
+continue (x:xs) = nextRow x:x:xs
 
 backtrack :: Stack -> Stack
-backtrack s = todo
+backtrack s = (nextCol $ head $ tail s):(tail $ tail s)
 
 --------------------------------------------------------------------------------
 -- Ex 8: Let's take a step. Our algorithm solves the problem (in a

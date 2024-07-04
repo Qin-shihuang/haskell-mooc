@@ -97,8 +97,7 @@ stop_ p = stop p >> return ()
 withOverrideHandle :: Handle -> Handle -> IO a -> IO a
 withOverrideHandle new old op =
   bracket (hDuplicate old) hClose $ \oldcopy ->
-  bracket (hDuplicateTo new old) (\_ -> hDuplicateTo oldcopy old) $ \_ ->
-  op
+  bracket (hDuplicateTo new old) (\_ -> hDuplicateTo oldcopy old) $ const op
 
 withStdinout :: Handle -> Handle -> IO a -> IO a
 withStdinout newin newout =
