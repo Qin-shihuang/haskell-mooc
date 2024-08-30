@@ -74,13 +74,22 @@ readWords n = replicateM n getLine
 --   ["bananas","garlic","pakchoi"]
 
 readUntil :: (String -> Bool) -> IO [String]
-readUntil f = todo
-
+readUntil f = do
+    line <- readLn
+    if line == "STOP"
+        then return []
+        else do
+            rest <- readUntil f
+            return (line : rest)
 ------------------------------------------------------------------------------
 -- Ex 6: given n, print the numbers from n to 0, one per line
 
 countdownPrint :: Int -> IO ()
-countdownPrint n = todo
+countdownPrint n = do
+    print n
+    if n == 0
+        then return ()
+        else countdownPrint (n - 1)
 
 ------------------------------------------------------------------------------
 -- Ex 7: isums n should read n numbers from the user (one per line) and
@@ -95,7 +104,14 @@ countdownPrint n = todo
 --   5. produces 9
 
 isums :: Int -> IO Int
-isums n = todo
+isums n = do
+    input <- getLine
+    if n == 0
+        then return (read input)
+        else do
+            sum <- isums (n - 1)
+            return (sum + read input)
+
 
 ------------------------------------------------------------------------------
 -- Ex 8: when is a useful function, but its first argument has type
