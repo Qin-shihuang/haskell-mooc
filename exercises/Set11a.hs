@@ -57,7 +57,11 @@ greet2 = do name <- getLine
 --   ["alice","bob","carl"]
 
 readWords :: Int -> IO [String]
-readWords n = replicateM n getLine
+readWords n = 
+    if n <= 0 then return []
+    else do line <- getLine
+            rest <- readWords (n-1)
+            return $ sort (line : rest)
 
 ------------------------------------------------------------------------------
 -- Ex 5: define the IO operation readUntil f, which reads lines from
@@ -75,21 +79,23 @@ readWords n = replicateM n getLine
 
 readUntil :: (String -> Bool) -> IO [String]
 readUntil f = do
-    line <- readLn
-    if line == "STOP"
-        then return []
-        else do
-            rest <- readUntil f
-            return (line : rest)
+    line <- getLine
+    if f line then return []
+    else do 
+        rest <- readUntil f
+        return (line : rest)
 ------------------------------------------------------------------------------
 -- Ex 6: given n, print the numbers from n to 0, one per line
 
 countdownPrint :: Int -> IO ()
 countdownPrint n = do
-    print n
-    if n == 0
-        then return ()
-        else countdownPrint (n - 1)
+    if n <= 0 then do
+        print n
+    else do
+        print n
+        countdownPrint (n - 1)
+
+
 
 ------------------------------------------------------------------------------
 -- Ex 7: isums n should read n numbers from the user (one per line) and
@@ -104,14 +110,13 @@ countdownPrint n = do
 --   5. produces 9
 
 isums :: Int -> IO Int
-isums n = do
-    input <- getLine
-    if n == 0
-        then return (read input)
-        else do
-            sum <- isums (n - 1)
-            return (sum + read input)
-
+isums n = isums' n 0
+    where
+        isums' 0 sum = return sum
+        isums' n sum = do
+            num <- readLn
+            print (sum + num)
+            isums' (n-1) (sum + num)
 
 ------------------------------------------------------------------------------
 -- Ex 8: when is a useful function, but its first argument has type
@@ -119,7 +124,9 @@ isums n = do
 -- argument has type IO Bool.
 
 whenM :: IO Bool -> IO () -> IO ()
-whenM cond op = todo
+whenM cond op = do
+    b <- cond
+    if b then op else return ()
 
 ------------------------------------------------------------------------------
 -- Ex 9: implement the while loop. while condition operation should
@@ -139,7 +146,9 @@ ask = do putStrLn "Y/N?"
          return $ line == "Y"
 
 while :: IO Bool -> IO () -> IO ()
-while cond op = todo
+while cond op = do
+    b <- cond
+    when b (op >> while cond op)
 
 ------------------------------------------------------------------------------
 -- Ex 10: given a string and an IO operation, print the string, run
@@ -159,4 +168,8 @@ while cond op = todo
 --     4. returns the line read from the user
 
 debug :: String -> IO a -> IO a
-debug s op = todo
+debug s op = do
+    putStrLn s
+    r <- op
+    putStrLn s
+    return r
