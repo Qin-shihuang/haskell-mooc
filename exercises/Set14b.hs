@@ -26,7 +26,8 @@ import Network.Wai.Handler.Warp (run)
 import Network.HTTP.Types (status200)
 
 -- Database
-import Database.SQLite.Simple (open,execute,execute_,query,query_,Connection,Query(..))
+import Database.SQLite.Simple (open,execute,execute_,query,query_,Connection,Query(..), Only (fromOnly))
+import qualified Database.SQLite.Simple as T
 
 ------------------------------------------------------------------------------
 -- Ex 1: Let's start with implementing some database operations. The
@@ -76,12 +77,16 @@ getAllQuery = Query (T.pack "SELECT account, amount FROM events;")
 -- NOTE! Do not add anything to the name, otherwise you'll get weird
 -- test failures later.
 openDatabase :: String -> IO Connection
-openDatabase = todo
+openDatabase name = do
+  conn <- open name
+  execute_ conn initQuery
+  return conn
 
 -- given a db connection, an account name, and an amount, deposit
 -- should add an (account, amount) row into the database
 deposit :: Connection -> T.Text -> Int -> IO ()
-deposit = todo
+deposit conn account amount = do
+  execute conn depositQuery (account, amount)
 
 ------------------------------------------------------------------------------
 -- Ex 2: Fetching an account's balance. Below you'll find
@@ -112,7 +117,9 @@ balanceQuery :: Query
 balanceQuery = Query (T.pack "SELECT amount FROM events WHERE account = ?;")
 
 balance :: Connection -> T.Text -> IO Int
-balance = todo
+balance conn account = do
+  res <- query conn balanceQuery (T.Only account) :: IO [Only Int]
+  return $ sum $ map fromOnly res
 
 ------------------------------------------------------------------------------
 -- Ex 3: Now that we have the database part covered, let's think about
@@ -144,15 +151,19 @@ balance = todo
 --   parseCommand [T.pack "deposit", T.pack "madoff", T.pack "123456"]
 --     ==> Just (Deposit "madoff" 123456)
 
-data Command = Deposit T.Text Int | Balance T.Text
+data Command = Deposit T.Text Int | Balance T.Text | Withdraw T.Text Int
   deriving (Show, Eq)
 
 parseInt :: T.Text -> Maybe Int
 parseInt = readMaybe . T.unpack
 
 parseCommand :: [T.Text] -> Maybe Command
-parseCommand = todo
-
+parseCommand (x:u:xs) 
+  | x == T.pack "deposit" = if length xs == 1 && (parseInt $ head xs) /= Nothing then Just (Deposit u (fromJust $ parseInt $ head xs)) else Nothing
+  | x == T.pack "balance" = if length xs == 0 then Just (Balance u) else Nothing
+  | x == T.pack "withdraw" = if length xs == 1 && (parseInt $ head xs) /= Nothing then Just (Withdraw u (fromJust $ parseInt $ head xs)) else Nothing
+  | otherwise = Nothing
+parseCommand _ = Nothing
 ------------------------------------------------------------------------------
 -- Ex 4: Running commands. Implement the IO operation perform that takes a
 -- database Connection, the result of parseCommand (a Maybe Command),
@@ -177,7 +188,16 @@ parseCommand = todo
 --   "0"
 
 perform :: Connection -> Maybe Command -> IO T.Text
-perform = todo
+perform conn command = case command of
+  Just (Deposit account amount) -> do
+    deposit conn account amount
+    return $ T.pack "OK"
+  Just (Balance account) -> do
+    balance conn account >>= return . T.pack . show
+  Just (Withdraw account amount) -> do
+    deposit conn account (-amount)
+    return $ T.pack "OK"
+  Nothing -> return $ T.pack "ERROR"
 
 ------------------------------------------------------------------------------
 -- Ex 5: Next up, let's set up a simple HTTP server. Implement a WAI
@@ -197,7 +217,7 @@ encodeResponse t = LB.fromStrict (encodeUtf8 t)
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 simpleServer :: Application
-simpleServer request respond = todo
+simpleServer request respond = respond $ responseLBS status200 [] (encodeResponse $ T.pack "BANK")
 
 ------------------------------------------------------------------------------
 -- Ex 6: Now we finally have all the pieces we need to actually
@@ -226,7 +246,10 @@ simpleServer request respond = todo
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 server :: Connection -> Application
-server db request respond = todo
+server db request respond = do
+  let command = parseCommand $ pathInfo request
+  response <- perform db command
+  respond $ responseLBS status200 [] (encodeResponse response)
 
 port :: Int
 port = 3421
